@@ -1,4 +1,4 @@
-from components import *
+from Components import *
 from Circuit import Circuit
 import numpy as np
 import matplotlib.pyplot as plt
