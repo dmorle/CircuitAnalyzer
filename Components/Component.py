@@ -14,16 +14,18 @@ class Component(ABC):
         """
         Creates a component
         :type name: str
-        :type n1: Node
-        :type n2: Node
-        :param n1: negative node connection
-        :param n2: positive node connection
+        :type n_neg: Node
+        :type n_pos: Node
+        :param name: name of the component
+        :param n_neg: negative node connection
+        :param n_pos: positive node connection
         """
+
         if type(name) is not str:
             raise TypeError("name is not of type string")
-        if type(n1) is not Node:
+        if type(n_neg) is not Node:
             raise TypeError("negative component connection is not to a node")
-        if type(n2) is not Node:
+        if type(n_pos) is not Node:
             raise TypeError("positive component connection is not to a node")
 
         self.name = name

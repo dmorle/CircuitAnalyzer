@@ -59,9 +59,11 @@ class Circuit:
         # TODO: determine a method for loading the circuit
 
     def ac_sweep(self, state_dict):
-
-        # Assumptions:
-        #   exactly 1 node labeled as ground
+        """
+        performs an ac sweep of the circuit based on the parameters given
+        :param state_dict: a collection of all the external parameters needed to simulate the circuit
+        :return: a dictionary of each voltage and current value, indexed by the parameter's name
+        """
 
         mrx = np.zeros([
             len(self.nodes) + len(self.connections)
