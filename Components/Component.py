@@ -10,7 +10,7 @@ class Component(ABC):
         AV+BI=C
     """
 
-    def __init__(self, name, n1, n2):
+    def __init__(self, name, n_neg, n_pos):
         """
         Creates a component
         :type name: str
@@ -27,29 +27,17 @@ class Component(ABC):
             raise TypeError("positive component connection is not to a node")
 
         self.name = name
-        self.n1 = n1
-        self.n2 = n2
+        self.n_neg = n_neg
+        self.n_pos = n_pos
 
-        n1.add_connection(self, False)
-        n1.add_connection(self, True)
-
-    @abstractmethod
-    def get_A(self):
-        """
-        calculates A from known parameters
-        :return: A from equation AV+BI=C
-        """
+        n_neg.add_connection(self, False)
+        n_pos.add_connection(self, True)
 
     @abstractmethod
-    def get_B(self):
+    def get_params(self, state_dict):
         """
-        calculates B from known parameters
-        :return: B from equation AV+BI=C
-        """
-
-    @abstractmethod
-    def get_C(self):
-        """
-        calculates C from known parameters
-        :return: C from equation AV+BI=C
+        calculates A, B and C from known parameters
+        :type state_dict dict
+        :param state_dict a dictionary of all external circuit parameters
+        :return: (A, B, C) from equation AV+BI=C
         """

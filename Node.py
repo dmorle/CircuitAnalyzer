@@ -16,7 +16,8 @@ class Node:
 
         self.name = name
         self.ground = ground
-        self.connections = list()
+        self.pos_cons = list()
+        self.neg_cons = list()
 
     def add_connection(self, cmp, polarity):
         """
@@ -31,4 +32,7 @@ class Node:
         if type(polarity) is not bool:
             raise TypeError("invalid polarity argument")
 
-        self.connections.append((cmp, polarity))
+        if polarity:
+            self.pos_cons.append(cmp)
+        else:
+            self.neg_cons.append(cmp)
