@@ -1,5 +1,5 @@
-from Node import Node
 from Components import Component
+from Node import Node
 
 
 class Resistor(Component):
@@ -8,7 +8,7 @@ class Resistor(Component):
         :type name: str
         :type n_neg: Node
         :type n_pos: Node
-        :type resistance:
+        :type resistance: float
         :param name: name of the component
         :param n_neg: negative node connection
         :param n_pos: positive node connection
