@@ -154,24 +154,24 @@ class Circuit(Comparable):
         # setting an id for each node and connection
         # the id will identify the row and column that the corresponding variable and resulting equation is assigned
         for enum in enumerate(self.nodes + self.connections):
-            enum[1].id = enum[0]
+            enum[1].num = enum[0]
 
         # doing all the appropriate KCLs
         for node in self.nodes:
             if node.ground:
                 # the ground node will not have a KCL, but instead a voltage assignment
-                mrx[node.id] = 1
-                vct[node.id] = 0
+                mrx[node.num] = 1
+                vct[node.num] = 0
 
             else:
                 # all non-ground nodes will produce a KCL
                 for neg_con in node.neg_cons:
-                    mrx[node.id, neg_con.id] = 1
+                    mrx[node.num, neg_con.num] = 1
 
                 for pos_con in node.pos_cons:
-                    mrx[node.id, pos_con.id] = -1
+                    mrx[node.num, pos_con.num] = -1
 
-                vct[node.id] = 0
+                vct[node.num] = 0
 
         # doing all the appropriate KVLs
         for cmp in self.connections:
@@ -180,38 +180,38 @@ class Circuit(Comparable):
 
             if cmp.n_neg.ground and cmp.n_pos.ground:
                 # both sides of the component are connected to ground => no current
-                mrx[cmp.id, cmp.id] = 1
-                vct[cmp.id] = 0
+                mrx[cmp.num, cmp.num] = 1
+                vct[cmp.num] = 0
 
             # Note: middle two elifs are only an optimization, algorithm would work fine without
             elif cmp.n_neg.ground:
                 # negative terminal of the component is connected to ground
-                mrx[cmp.id, cmp.n_pos.id] = a
-                mrx[cmp.id, cmp.id] = b
-                vct[cmp.id] = c
+                mrx[cmp.num, cmp.n_pos.num] = a
+                mrx[cmp.num, cmp.num] = b
+                vct[cmp.num] = c
 
             elif cmp.n_pos.ground:
                 # positive terminal of the component is connected to ground
-                mrx[cmp.id, cmp.n_neg.id] = -a
-                mrx[cmp.id, cmp.id] = b
-                vct[cmp.id] = c
+                mrx[cmp.num, cmp.n_neg.num] = -a
+                mrx[cmp.num, cmp.num] = b
+                vct[cmp.num] = c
 
             else:
                 # neither terminal of the component is connected to ground
-                mrx[cmp.id, cmp.n_pos.id] = a
-                mrx[cmp.id, cmp.n_neg.id] = -a
-                mrx[cmp.id, cmp.id] = b
-                vct[cmp.id] = c
+                mrx[cmp.num, cmp.n_pos.num] = a
+                mrx[cmp.num, cmp.n_neg.num] = -a
+                mrx[cmp.num, cmp.num] = b
+                vct[cmp.num] = c
 
         solutions = np.linalg.solve(mrx, vct)
 
         results = dict()
 
         for node in self.nodes:
-            results[node.name] = solutions[node.id]
+            results[node.name] = solutions[node.num]
 
         for cmp in self.connections:
-            results[cmp.name] = solutions[cmp.id]
+            results[cmp.name] = solutions[cmp.num]
 
         return results
 
