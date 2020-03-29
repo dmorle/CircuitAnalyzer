@@ -183,7 +183,7 @@ class Circuit(Comparable):
         for node in self.nodes:
             if node.ground:
                 # the ground node will not have a KCL, but instead a voltage assignment
-                mrx[node.num] = 1
+                mrx[node.num, node.num] = 1
                 vct[node.num] = 0
 
             else:

@@ -10,10 +10,21 @@ def create_tmp_file():
     circ.add_node(n1)
     circ.add_node(n2)
 
-    Resistor("R1", n2, n1, 1000)
+    Resistor("R1", n1, n2, 1000)
     VoltageSource("V1", n1, n2, 5)
 
     circ.save("tmp.circ", overwrite=True)
+    return circ
+
+
+def two_node_circuit():
+    circ = Circuit()
+    n0 = Node("N0", True)
+    n1 = Node("N1")
+    circ.add_node(n0)
+    circ.add_node(n1)
+
+    return circ, n0, n1
 
 
 class CircuitBuilding(unittest.TestCase):
@@ -70,8 +81,7 @@ class CircuitBuilding(unittest.TestCase):
         self.assertTrue(False, "Component was not rejected")
 
     def test_save_circuit(self):
-        create_tmp_file()
-        circ = Circuit("Circ")
+        circ = create_tmp_file()
 
         with open("tmp.circ", "r") as f:
             data = json.load(f)
@@ -86,7 +96,79 @@ class CircuitBuilding(unittest.TestCase):
         self.assertEqual(len(circ.nodes), 2)
         self.assertEqual(len(circ.components), 2)
 
-        print(circ)
+
+class ACAnalysis(unittest.TestCase):
+    def test_single_node(self):
+        circ = Circuit()
+        circ.add_node(Node("ground-node", True))
+
+        results = circ.ac_sweep({"frequency": 1e3})
+
+        self.assertEqual(0, results["ground-node"])
+
+    def test_voltage_source(self):
+        circ, n0, n1 = two_node_circuit()
+
+        VoltageSource("V0", n0, n1, 5)
+        results = circ.ac_sweep({"frequency": 1e3})
+
+        self.assertEqual(0, results["N0"], "Voltage at N0 is wrong")
+        self.assertEqual(5, results["N1"], "Voltage at N1 is wrong")
+        self.assertEqual(0, results["V0"], "Current through the voltage source is wrong")
+
+    def test_resistor(self):
+        circ, n0, n1 = two_node_circuit()
+
+        Resistor("R0", n0, n1, 1e3)
+        results = circ.ac_sweep({"frequency": 1e3})
+
+        self.assertEqual(0, results["N0"], "Voltage at N0 is wrong")
+        self.assertEqual(0, results["N1"], "Voltage at N1 is wrong")
+        self.assertEqual(0, results["R0"], "Current through the resistor is non-zero")
+
+    def test_capacitor(self):
+        circ, n0, n1 = two_node_circuit()
+
+        Capacitor("C0", n0, n1, 1e-6)
+        results = circ.ac_sweep({"frequency": 1e3})
+
+        self.assertEqual(0, results["N0"], "Voltage at N0 is wrong")
+        self.assertEqual(0, results["N1"], "Voltage at N1 is wrong")
+        self.assertEqual(0, results["C0"], "Current through the capacitor is non-zero")
+
+    def test_inductor(self):
+        circ, n0, n1 = two_node_circuit()
+
+        Inductor("L0", n0, n1, 1e-3)
+        results = circ.ac_sweep({"frequency": 1e3})
+
+        self.assertEqual(0, results["N0"], "Voltage at N0 is wrong")
+        self.assertEqual(0, results["N1"], "Voltage at N1 is wrong")
+        self.assertEqual(0, results["L0"], "Current through the inductor is non-zero")
+
+    def test_resistor_circuit(self):
+        circ, n0, n1 = two_node_circuit()
+
+        VoltageSource("V0", n0, n1, 5)
+        Resistor("R0", n0, n1, 1e3)
+        results = circ.ac_sweep({"frequency": 1e3})
+
+        self.assertEqual(0, results["N0"], "Voltage at N0 is wrong")
+        self.assertEqual(5, results["N1"], "Voltage at N1 is wrong")
+        self.assertEqual(-5e-3, results["V0"], "Current through the voltage source is wrong")
+        self.assertEqual(5e-3, results["R0"], "Current through resistor is wrong")
+
+    def test_current_source(self):
+        circ, n0, n1 = two_node_circuit()
+
+        CurrentSource("I0", n0, n1, -5e-3)
+        Resistor("R0", n0, n1, 1e3)
+        results = circ.ac_sweep({"frequency": 1e3})
+
+        self.assertEqual(0, results["N0"], "Voltage at N0 is wrong")
+        self.assertEqual(5, results["N1"], "Voltage at N1 is wrong")
+        self.assertEqual(-5e-3, results["I0"], "Current through the current source is wrong")
+        self.assertEqual(5e-3, results["R0"], "Current through the resistor is wrong")
 
 
 if __name__ == '__main__':
