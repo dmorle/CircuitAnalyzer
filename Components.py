@@ -16,10 +16,15 @@ class Resistor(Component):
         """
         super(Resistor, self).__init__(name, n_neg, n_pos)
 
-        self.B = -resistance
+        self.resistance = resistance
 
     def get_params(self, state_dict):
-        return 1, self.B, 0
+        return 1, -self.resistance, 0
+
+    def get_attributes(self):
+        return {
+            "resistance": self.resistance
+        }
 
 
 class Capacitor(Component):
@@ -44,6 +49,11 @@ class Capacitor(Component):
 
         return 1, -1 / (2 * pi * state_dict["frequency"] * self.capacitance), 0
 
+    def get_attributes(self):
+        return {
+            "capacitance": self.capacitance
+        }
+
 
 class Inductor(Component):
     def __init__(self, name, n_neg, n_pos, inductance):
@@ -67,6 +77,11 @@ class Inductor(Component):
 
         return 1, -2 * pi * state_dict["frequency"] * self.inductance, 0
 
+    def get_attributes(self):
+        return {
+            "inductance": self.inductance
+        }
+
 
 class VoltageSource(Component):
     def __init__(self, name, n_neg, n_pos, voltage):
@@ -87,6 +102,11 @@ class VoltageSource(Component):
     def get_params(self, state_dict):
         return 1, 0, self.voltage
 
+    def get_attributes(self):
+        return {
+            "voltage": self.voltage
+        }
+
 
 class CurrentSource(Component):
     def __init__(self, name, n_neg, n_pos, current):
@@ -106,6 +126,11 @@ class CurrentSource(Component):
 
     def get_params(self, state_dict):
         return 0, 1, self.current
+
+    def get_attributes(self):
+        return {
+            "current": self.current
+        }
 
 
 Resistor.get_params.__doc__ = Component.get_params.__doc__

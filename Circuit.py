@@ -1,4 +1,5 @@
 import os
+import json
 from abc import abstractmethod
 import numpy as np
 
@@ -31,7 +32,7 @@ class Node(Comparable):
 
         self.circuit = None
 
-    def add_connection(self, cmp, polarity):
+    def add_component(self, cmp, polarity):
         """
         called by a component on initialization
         :type cmp: Component
@@ -84,7 +85,7 @@ class Component(Comparable):
         if n_neg.circuit != n_pos.circuit:
             raise CircuitError("nodes {} and {} belong to different circuits".format(n_neg.name, n_pos.name))
 
-        for e in n_neg.circuit.nodes + n_pos.circuit.connections:
+        for e in n_neg.circuit.nodes + n_pos.circuit.components:
             if e.name == name:
                 raise NameError("name {} already exists in the circuit".format(name))
 
@@ -92,10 +93,13 @@ class Component(Comparable):
         self.n_neg = n_neg
         self.n_pos = n_pos
 
-        n_neg.add_connection(self, False)
-        n_pos.add_connection(self, True)
+        n_neg.add_component(self, False)
+        n_pos.add_component(self, True)
 
-        n_neg.circuit.connections.append(self)
+        n_neg.circuit.components.append(self)
+
+    def get_type(self):
+        return str(type(self)).split("'")[1].split(".")[-1]
 
     @abstractmethod
     def get_params(self, state_dict):
@@ -106,13 +110,20 @@ class Component(Comparable):
         :return: (A, B, C) from equation AV+BI=C
         """
 
+    @abstractmethod
+    def get_attributes(self):
+        """
+        creates a dictionary of arguments needed for reconstruction
+        """
+
 
 class Circuit(Comparable):
-    def __init__(self):
+    def __init__(self, name):
         super(Circuit, self).__init__()
 
+        self.name = name
         self.nodes = list()
-        self.connections = list()
+        self.components = list()
 
     def add_node(self, node):
         """
@@ -145,15 +156,15 @@ class Circuit(Comparable):
             raise CircuitError("All circuits require at least one ground node")
 
         mrx = np.zeros([
-            len(self.nodes) + len(self.connections)
+            len(self.nodes) + len(self.components)
         ] * 2)
         vct = np.empty([
-            len(self.nodes) + len(self.connections)
+            len(self.nodes) + len(self.components)
         ])
 
         # setting an id for each node and connection
         # the id will identify the row and column that the corresponding variable and resulting equation is assigned
-        for enum in enumerate(self.nodes + self.connections):
+        for enum in enumerate(self.nodes + self.components):
             enum[1].num = enum[0]
 
         # doing all the appropriate KCLs
@@ -174,7 +185,7 @@ class Circuit(Comparable):
                 vct[node.num] = 0
 
         # doing all the appropriate KVLs
-        for cmp in self.connections:
+        for cmp in self.components:
             # all connections will produce a KVL equation
             a, b, c = cmp.get_params(state_dict)
 
@@ -210,7 +221,7 @@ class Circuit(Comparable):
         for node in self.nodes:
             results[node.name] = solutions[node.num]
 
-        for cmp in self.connections:
+        for cmp in self.components:
             results[cmp.name] = solutions[cmp.num]
 
         return results
@@ -230,13 +241,15 @@ class Circuit(Comparable):
 
         # TODO: determine a method for loading the circuit
 
-    def save(self, path, ignore_existing=False):
+    def save(self, path, ignore_existing=False, pretty_printing=True):
         """
         Saves the current circuit to path
         :type path: str
         :type ignore_existing: bool
+        :type pretty_printing: bool
         :param path: the location to which the circuit will be saved
         :param ignore_existing: do not check if the file already exists
+        :param pretty_printing: includes indents and new-lines to make the file more readable
         """
 
         if type(path) is not str:
@@ -247,14 +260,37 @@ class Circuit(Comparable):
                 raise FileExistsError("file {} already exists".format(path))
 
         serialized = self.__serialize()
+
         with open(path, "w") as f:
-            f.write(serialized)
+            if pretty_printing:
+                json.dump(serialized, f, indent=4)
+            else:
+                json.dump(serialized, f)
 
     def __serialize(self):
         """
         :return: a string representation of the circuit
         """
 
-        # TODO: determine a method for serializing the circuit
+        node_list = list()
+        for node in self.nodes:
+            node_list.append({
+                "Name": node.name,
+                "Ground": node.ground
+            })
 
-        return ""
+        component_list = list()
+        for component in self.components:
+            component_list.append({
+                "Name": component.name,
+                "Type": component.get_type(),
+                "Negative": component.n_neg.name,
+                "Positive": component.n_pos.name,
+                "Attributes": component.get_attributes()
+            })
+
+        return {
+            "Name": self.name,
+            "Nodes": node_list,
+            "Components": component_list
+        }

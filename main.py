@@ -1,10 +1,12 @@
+import Components
 from Components import *
-from Circuit import Circuit
+from Circuit import *
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 def main():
+
     return
 
 

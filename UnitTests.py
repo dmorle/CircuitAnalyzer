@@ -5,26 +5,26 @@ from Components import *
 
 class CircuitBuilding(unittest.TestCase):
     def test_single_node_circuit(self):
-        circ = Circuit()
+        circ = Circuit("Circ")
         circ.add_node(Node("ground node", True))
 
         self.assertTrue(
             len(circ.nodes) == 1 and
-            len(circ.connections) == 0
+            len(circ.components) == 0
         )
 
     def test_multi_node_circuit(self):
-        circ = Circuit()
+        circ = Circuit("Circ")
         circ.add_node(Node("ground node", True))
         circ.add_node(Node("non-ground"))
 
         self.assertTrue(
             len(circ.nodes) == 2 and
-            len(circ.connections) == 0
+            len(circ.components) == 0
         )
 
     def test_component_circuit_1(self):
-        circ = Circuit()
+        circ = Circuit("Circ")
 
         ground = Node("ground node", True)
         node = Node("non-ground")
@@ -37,11 +37,11 @@ class CircuitBuilding(unittest.TestCase):
 
         self.assertTrue(
             len(circ.nodes) == 2 and
-            len(circ.connections) == 2
+            len(circ.components) == 2
         )
 
     def test_component_rejection(self):
-        circ = Circuit()
+        circ = Circuit("Circ")
 
         ground = Node("ground node", True)
         node = Node("non-ground")
@@ -55,6 +55,24 @@ class CircuitBuilding(unittest.TestCase):
             return
 
         self.assertTrue(False, "Component was not rejected")
+
+    def test_save_circuit(self):
+        circ = Circuit("Circ")
+
+        n1 = Node("N1", True)
+        n2 = Node("N2")
+        circ.add_node(n1)
+        circ.add_node(n2)
+
+        Resistor("R1", n2, n1, 1000)
+        VoltageSource("V1", n1, n2, 5)
+
+        circ.save("tmp.circ", ignore_existing=True)
+
+        with open("tmp.circ", "r") as f:
+            data = json.load(f)
+
+        self.assertEqual(data, circ._Circuit__serialize())
 
 
 if __name__ == '__main__':
