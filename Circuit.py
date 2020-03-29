@@ -4,6 +4,7 @@ from abc import abstractmethod
 import numpy as np
 
 from util.Comparable import Comparable
+import Components
 
 
 class CircuitError(Exception):
@@ -118,7 +119,7 @@ class Component(Comparable):
 
 
 class Circuit(Comparable):
-    def __init__(self, name):
+    def __init__(self, name=""):
         super(Circuit, self).__init__()
 
         self.name = name
@@ -140,6 +141,13 @@ class Circuit(Comparable):
 
         node.circuit = self
         self.nodes.append(node)
+
+    def get_node(self, name):
+        for node in self.nodes:
+            if node.name == name:
+                return node
+
+        raise CircuitError("Circuit {} does not have node {}", self.name, name)
 
     def ac_sweep(self, state_dict):
         """
@@ -226,7 +234,7 @@ class Circuit(Comparable):
 
         return results
 
-    def load(self, path):
+    def load(self, path, overwrite=False):
         """
         Loads the circuit found at path to self
         :type path: str
@@ -239,23 +247,46 @@ class Circuit(Comparable):
         if not os.path.isfile(path):
             raise IOError("could not find file at provided path")
 
-        # TODO: determine a method for loading the circuit
+        if not overwrite:
+            if len(self.nodes) != 0:
+                raise CircuitError("Cannot overwrite existing circuit without explicit direction")
+        else:
+            self.nodes = list()
+            self.components = list()
 
-    def save(self, path, ignore_existing=False, pretty_printing=True):
+        with open(path, "r") as f:
+            data = json.load(f)
+
+        self.name = data["Name"]
+
+        # building the nodes of the circuit
+        for node_info in data["Nodes"]:
+            self.add_node(Node(node_info["Name"], node_info["Ground"]))
+
+        # building the components of the circuit
+        for component_info in data["Components"]:
+            getattr(Components, component_info["Type"])(
+                component_info["Name"],
+                self.get_node(component_info["Negative"]),
+                self.get_node(component_info["Positive"]),
+                *component_info["Attributes"]
+            )
+
+    def save(self, path, overwrite=False, pretty_printing=True):
         """
         Saves the current circuit to path
         :type path: str
-        :type ignore_existing: bool
+        :type overwrite: bool
         :type pretty_printing: bool
         :param path: the location to which the circuit will be saved
-        :param ignore_existing: do not check if the file already exists
+        :param overwrite: do not check if the file already exists
         :param pretty_printing: includes indents and new-lines to make the file more readable
         """
 
         if type(path) is not str:
             raise TypeError("argument path is not of type string")
 
-        if not ignore_existing:
+        if not overwrite:
             if os.path.isfile(path):
                 raise FileExistsError("file {} already exists".format(path))
 

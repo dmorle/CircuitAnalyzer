@@ -67,7 +67,7 @@ class CircuitBuilding(unittest.TestCase):
         Resistor("R1", n2, n1, 1000)
         VoltageSource("V1", n1, n2, 5)
 
-        circ.save("tmp.circ", ignore_existing=True)
+        circ.save("tmp.circ", overwrite=True)
 
         with open("tmp.circ", "r") as f:
             data = json.load(f)
