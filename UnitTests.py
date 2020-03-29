@@ -1,6 +1,19 @@
 import unittest
 from Circuit import *
-from Components import *
+
+
+def create_tmp_file():
+    circ = Circuit("Circ")
+
+    n1 = Node("N1", True)
+    n2 = Node("N2")
+    circ.add_node(n1)
+    circ.add_node(n2)
+
+    Resistor("R1", n2, n1, 1000)
+    VoltageSource("V1", n1, n2, 5)
+
+    circ.save("tmp.circ", overwrite=True)
 
 
 class CircuitBuilding(unittest.TestCase):
@@ -57,22 +70,23 @@ class CircuitBuilding(unittest.TestCase):
         self.assertTrue(False, "Component was not rejected")
 
     def test_save_circuit(self):
+        create_tmp_file()
         circ = Circuit("Circ")
-
-        n1 = Node("N1", True)
-        n2 = Node("N2")
-        circ.add_node(n1)
-        circ.add_node(n2)
-
-        Resistor("R1", n2, n1, 1000)
-        VoltageSource("V1", n1, n2, 5)
-
-        circ.save("tmp.circ", overwrite=True)
 
         with open("tmp.circ", "r") as f:
             data = json.load(f)
 
         self.assertEqual(data, circ._Circuit__serialize())
+
+    def test_load_circuit(self):
+        create_tmp_file()
+        circ = Circuit()
+        circ.load(path="tmp.circ")
+
+        self.assertEqual(len(circ.nodes), 2)
+        self.assertEqual(len(circ.components), 2)
+
+        print(circ)
 
 
 if __name__ == '__main__':

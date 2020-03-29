@@ -1,10 +1,10 @@
 import os
 import json
+import pprint
+from math import pi
 from abc import abstractmethod
 import numpy as np
-
 from util.Comparable import Comparable
-import Components
 
 
 class CircuitError(Exception):
@@ -126,6 +126,10 @@ class Circuit(Comparable):
         self.nodes = list()
         self.components = list()
 
+    def __str__(self):
+        data = self.__serialize()
+        return pprint.pformat(data, indent=4)
+
     def add_node(self, node):
         """
         Adds a new node to the circuit
@@ -238,7 +242,9 @@ class Circuit(Comparable):
         """
         Loads the circuit found at path to self
         :type path: str
+        :type overwrite: bool
         :param path: the location from which a circuit will be loaded
+        :param overwrite ignore any existing circuit data
         """
 
         if type(path) is not str:
@@ -247,12 +253,12 @@ class Circuit(Comparable):
         if not os.path.isfile(path):
             raise IOError("could not find file at provided path")
 
-        if not overwrite:
-            if len(self.nodes) != 0:
-                raise CircuitError("Cannot overwrite existing circuit without explicit direction")
-        else:
+        if overwrite:
             self.nodes = list()
             self.components = list()
+        else:
+            if len(self.nodes) != 0:
+                raise CircuitError("Cannot overwrite existing circuit without explicit direction")
 
         with open(path, "r") as f:
             data = json.load(f)
@@ -265,11 +271,11 @@ class Circuit(Comparable):
 
         # building the components of the circuit
         for component_info in data["Components"]:
-            getattr(Components, component_info["Type"])(
+            globals()[component_info["Type"]](
                 component_info["Name"],
                 self.get_node(component_info["Negative"]),
                 self.get_node(component_info["Positive"]),
-                *component_info["Attributes"]
+                **component_info["Attributes"]
             )
 
     def save(self, path, overwrite=False, pretty_printing=True):
@@ -325,3 +331,141 @@ class Circuit(Comparable):
             "Nodes": node_list,
             "Components": component_list
         }
+
+
+class Resistor(Component):
+    def __init__(self, name, n_neg, n_pos, resistance):
+        """
+        :type name: str
+        :type n_neg: Node
+        :type n_pos: Node
+        :type resistance: float
+        :param name: name of the component
+        :param n_neg: negative node connection
+        :param n_pos: positive node connection
+        :param resistance: resistance of the resistor
+        """
+        super(Resistor, self).__init__(name, n_neg, n_pos)
+
+        self.resistance = resistance
+
+    def get_params(self, state_dict):
+        return 1, -self.resistance, 0
+
+    def get_attributes(self):
+        return {
+            "resistance": self.resistance
+        }
+
+
+class Capacitor(Component):
+    def __init__(self, name, n_neg, n_pos, capacitance):
+        """
+        :type name: str
+        :type n_neg: Node
+        :type n_pos: Node
+        :type capacitance: float
+        :param name: name of the component
+        :param n_neg: negative node connection
+        :param n_pos: positive node connection
+        :param capacitance: capacitance of the capacitor
+        """
+        super(Capacitor, self).__init__(name, n_neg, n_pos)
+
+        self.capacitance = capacitance
+
+    def get_params(self, state_dict):
+        if "frequency" not in state_dict:
+            raise KeyError("frequency not provided")
+
+        return 1, -1 / (2 * pi * state_dict["frequency"] * self.capacitance), 0
+
+    def get_attributes(self):
+        return {
+            "capacitance": self.capacitance
+        }
+
+
+class Inductor(Component):
+    def __init__(self, name, n_neg, n_pos, inductance):
+        """
+        :type name: str
+        :type n_neg: Node
+        :type n_pos: Node
+        :type inductance: float
+        :param name: name of the component
+        :param n_neg: negative node connection
+        :param n_pos: positive node connection
+        :param inductance: inductance of the inductor
+        """
+        super(Inductor, self).__init__(name, n_neg, n_pos)
+
+        self.inductance = inductance
+
+    def get_params(self, state_dict):
+        if "frequency" not in state_dict:
+            raise KeyError("frequency not provided")
+
+        return 1, -2 * pi * state_dict["frequency"] * self.inductance, 0
+
+    def get_attributes(self):
+        return {
+            "inductance": self.inductance
+        }
+
+
+class VoltageSource(Component):
+    def __init__(self, name, n_neg, n_pos, voltage):
+        """
+        :type name: str
+        :type n_neg: Node
+        :type n_pos: Node
+        :type voltage: float
+        :param name: name of the component
+        :param n_neg: negative node connection
+        :param n_pos: positive node connection
+        :param voltage: voltage across the source
+        """
+        super(VoltageSource, self).__init__(name, n_neg, n_pos)
+
+        self.voltage = voltage
+
+    def get_params(self, state_dict):
+        return 1, 0, self.voltage
+
+    def get_attributes(self):
+        return {
+            "voltage": self.voltage
+        }
+
+
+class CurrentSource(Component):
+    def __init__(self, name, n_neg, n_pos, current):
+        """
+        :type name: str
+        :type n_neg: Node
+        :type n_pos: Node
+        :type current: float
+        :param name: name of the component
+        :param n_neg: negative node connection
+        :param n_pos: positive node connection
+        :param current: current through the source
+        """
+        super(CurrentSource, self).__init__(name, n_neg, n_pos)
+
+        self.current = current
+
+    def get_params(self, state_dict):
+        return 0, 1, self.current
+
+    def get_attributes(self):
+        return {
+            "current": self.current
+        }
+
+
+Resistor.get_params.__doc__ = Component.get_params.__doc__
+Capacitor.get_params.__doc__ = Component.get_params.__doc__
+Inductor.get_params.__doc__ = Component.get_params.__doc__
+VoltageSource.get_params.__doc__ = Component.get_params.__doc__
+CurrentSource.get_params.__doc__ = Component.get_params.__doc__
