@@ -169,10 +169,10 @@ class Circuit(Comparable):
 
         mrx = np.zeros([
             len(self.nodes) + len(self.components)
-        ] * 2)
+        ] * 2, dtype=np.complex128)
         vct = np.empty([
             len(self.nodes) + len(self.components)
-        ])
+        ], dtype=np.complex128)
 
         # setting an id for each node and connection
         # the id will identify the row and column that the corresponding variable and resulting equation is assigned
@@ -378,7 +378,7 @@ class Capacitor(Component):
         if "frequency" not in state_dict:
             raise KeyError("frequency not provided")
 
-        return 1, -1 / (2 * pi * state_dict["frequency"] * self.capacitance), 0
+        return 1, -1j / (2 * pi * state_dict["frequency"] * self.capacitance), 0
 
     def get_attributes(self):
         return {
@@ -406,7 +406,7 @@ class Inductor(Component):
         if "frequency" not in state_dict:
             raise KeyError("frequency not provided")
 
-        return 1, -2 * pi * state_dict["frequency"] * self.inductance, 0
+        return 1, -2j * pi * state_dict["frequency"] * self.inductance, 0
 
     def get_attributes(self):
         return {

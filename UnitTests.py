@@ -1,4 +1,7 @@
 import unittest
+from math import pi
+from typing import Any
+
 from Circuit import *
 
 
@@ -98,6 +101,10 @@ class CircuitBuilding(unittest.TestCase):
 
 
 class ACAnalysis(unittest.TestCase):
+    def assertAlmostEqualComplex(self, first: complex, second: complex, places: int = ..., msg: Any = ...) -> None:
+        self.assertAlmostEqual(first.real, second.real, places, msg)
+        self.assertAlmostEqual(first.imag, second.imag, places, msg)
+
     def test_single_node(self):
         circ = Circuit()
         circ.add_node(Node("ground-node", True))
@@ -157,6 +164,24 @@ class ACAnalysis(unittest.TestCase):
         self.assertEqual(5, results["N1"], "Voltage at N1 is wrong")
         self.assertEqual(-5e-3, results["V0"], "Current through the voltage source is wrong")
         self.assertEqual(5e-3, results["R0"], "Current through resistor is wrong")
+
+    def test_capacitor_circuit(self):
+        circ, n0, n1 = two_node_circuit()
+
+        VoltageSource("V0", n0, n1, 5)
+        Capacitor("C0", n0, n1, 1e-6)
+        results = circ.ac_sweep({"frequency": 1e3})
+
+        self.assertEqual(0, results["N0"], "Voltage at N0 is wrong")
+        self.assertEqual(5, results["N1"], "Voltage at N1 is wrong")
+        self.assertAlmostEqualComplex(
+            0.01j*pi, complex(results["V0"]),
+            6, "Current through the voltage source is wrong"
+        )
+        self.assertAlmostEqualComplex(
+            -0.01j*pi, complex(results["C0"]),
+            6, "Current through the capacitor is wrong"
+        )
 
     def test_current_source(self):
         circ, n0, n1 = two_node_circuit()
